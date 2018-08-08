@@ -1,0 +1,297 @@
+# ----------------------------------------------- #
+# 1. Subset blastp results to meet the criterion
+# ----------------------------------------------- #
+
+# Blastp alignment criterion:
+1. Alignment identity >= 50
+2. Sum alignment coverage of query and subject >= 130
+3. Reciprocal hits meeting the cutoffs
+
+# Select organisms for paper 
+SELECT concat(LEFT(genus, 1),'. ',real_name) as species_name from organism where NigriPaperset = 1;
+
+Aspacu1			A. aculeatinus
+Aspbru1			A. brunneoviolaceus
+Aspell1			A. ellipticus
+Aspeuc1			A. eucalypticola
+Asphet1			A. heteromorphus
+Asphom1			A. homomorphus
+Asplac1			A. lacticoffeatus
+Aspneo1			A. neoniger
+Asppip1			A. piperis
+Aspsac1			A. saccharolyticus
+Aspscle1		A. sclerotiicarbonarius
+Aspscl1			A. sclerotioniger
+Aspuva1			A. uvarum
+Aspvad1			A. vadensis
+Aspvio1			A. violaceofuscus
+Aspfij1			A. fijiensis
+Aspibe1			A. ibericus
+Aspjap1			A. japonicus
+Aspcos1			A. costaricaensis
+Aspfo1			A. luchuensis CBS 106.47
+Aspac1			A. aculeatus
+Aspbr1			A. brasiliensis
+Aspca3			A. carbonarius
+Aspfl1			A. flavus
+Aspfu1			A. fumigatus Af293
+Aspnid1			A. nidulans
+Aspni7			A. niger ATCC 1015
+Aspni_DSM_1		A. niger CBS 513.88
+Aspni_NRRL3_1	A. niger NRRL3
+Aspni_bvT_1		A. niger ATCC 13496
+Aspor1			A. oryzae
+Aspph1			A. phoenicis
+Asptu1			A. tubingensis
+Aspka1_1		A. luchuensis IFO 4308
+Aspwel1			A. welwitschiae
+Aspind1			A. indologenus
+Pench1			P. chrysogenum
+Neucr2			N. crassa
+
+# Create biblast table
+time python ../biblast.py 
+-host XX -user XX -passwd XX -c -bi P17_Nigri_biblast_ID50_SC130 -id 50 -scov 130 
+-sp Aspacu1 Aspbru1 Aspell1 Aspeuc1 Asphet1 Asphom1 Asplac1 Aspneo1 Asppip1 Aspsac1 
+Aspscle1 Aspscl1 Aspuva1 Aspvad1 Aspvio1 Aspfij1 Aspibe1 Aspjap1 Aspcos1 Aspfo1 Aspac1 
+Aspbr1 Aspca3 Aspfl1 Aspfu1 Aspnid1 Aspni7 Aspni_DSM_1 Aspni_NRRL3_1 Aspni_bvT_1 Aspor1 
+Aspph1 Asptu1 Aspka1_1 Pench1 Neucr2 Aspwel1 Aspind1
+# Table: P17_Nigri_biblast_ID50_SC130
+
+# ----------------------------------------------- #
+# Single link proteins to homologous families 
+# ----------------------------------------------- #
+
+# Create homolog family table
+time python -u ../homologyFinder_duplRemoval.py -btable P17_Nigri_biblast_ID50_SC130 
+-htable P17_Nigri_hfam -host XX -user XX -passwd XX -sp  Aspacu1 Aspbru1 Aspell1 
+Aspeuc1 Asphet1 Asphom1 Asplac1 Aspneo1 Asppip1 Aspsac1 Aspscle1 Aspscl1 Aspuva1 
+Aspvad1 Aspvio1 Aspfij1 Aspibe1 Aspjap1 Aspcos1 Aspfo1 Aspac1 Aspbr1 Aspca3 Aspfl1 
+Aspfu1 Aspnid1 Aspni7 Aspni_DSM_1 Aspni_NRRL3_1 Aspni_bvT_1 Aspor1 Aspph1 Asptu1 
+Aspka1_1 Pench1 Neucr2 Aspwel1 Aspind1 
+# Table: P17_Nigri_hfam
+
+# ----------------------------------------------- #
+# Create bar plots and shared protein cladograms
+# ----------------------------------------------- #
+
+# Analysis selections:
+38 fungal species
+36 Aspergillus genus species
+32 section Nigri species
+8 Tubigensis clade species
+6 Niger isolate clade
+
+# Analysis script: NigriPaper_CPU_IPRcoverage_tree.R
+# Helper scripts: jlnr_helpers.R and adjToPhylo.R
+# Run script: NigriPaper_CPU_IPRcoverage_tree_RUN.R
+
+OBS: You have to run your analysis through NigriPaper_CPU_IPRcoverage_tree_RUN.R 
+or source the helper scripts.
+You need to install these packages from source before running scripts:
+#install.packages("devtools")
+#devtools::install_github("lionel-/ggstance")
+#devtools::install_github("GuangchuangYu/treeio")  
+#devtools::install_github("GuangchuangYu/ggtree")
+
+# Output tables in MySQL database:
+t_RtempIPR_38_species
+t_RtempIPR_36_Aspergilli
+t_RtempIPR_Nigri_section
+t_RtempIPR_Tubigensis_clade
+t_RtempIPR_Niger_clade
+
+# ----------------------------------------------- #
+# Additional analysis for paper
+# ----------------------------------------------- #
+
+# Rename tables
+RENAME TABLE `t_RtempIPR_38_species` TO `P17_R_IPR_38_species`;
+RENAME TABLE `t_RtempIPR_36_Aspergilli` TO `P17_R_IPR_36_Aspergilus_genus`;
+RENAME TABLE `t_RtempIPR_Nigri_section` TO `P17_R_IPR_Nigri_section`;
+RENAME TABLE `t_RtempIPR_Tubigensis_clade` TO `P17_R_IPR_Tubigensis_clade`;
+RENAME TABLE `t_RtempIPR_Niger_clade` TO `P17_R_IPR_Niger_clade`;
+
+# InterPro decriptions in:
+# Pan
+CREATE TABLE P17_IPRpan_38fungal
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_38_species ta
+LEFT JOIN ipr
+USING (ipr_id)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRpan_AspGenus
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_36_Aspergilus_genus ta
+LEFT JOIN ipr
+USING (ipr_id)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRpan_NigriSection
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_Nigri_section ta
+LEFT JOIN ipr
+USING (ipr_id)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRpan_TubigensisClade
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_Tubigensis_clade ta
+LEFT JOIN ipr
+USING (ipr_id)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRpan_NigerClade
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_Niger_clade ta
+LEFT JOIN ipr
+USING (ipr_id)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+
+# Core
+CREATE TABLE P17_IPRcore_38fungal
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_38_species ta
+LEFT JOIN ipr
+USING (ipr_id)
+WHERE org_count = 38
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRcore_AspGenus
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_36_Aspergilus_genus ta
+LEFT JOIN ipr
+USING (ipr_id)
+WHERE org_count = 36
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRcore_NigriSection
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_Nigri_section ta
+LEFT JOIN ipr
+USING (ipr_id)
+WHERE org_count = 32
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRcore_TubigensisClade
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_Tubigensis_clade ta
+LEFT JOIN ipr
+USING (ipr_id)
+WHERE org_count = 8
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRcore_NigerClade
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", ta.ipr_id as "InterPro ID", ipr_desc as "InterPro description"
+FROM P17_R_IPR_Niger_clade ta
+LEFT JOIN ipr
+USING (ipr_id)
+WHERE org_count = 6
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+
+# Unique
+# OBS: Used P17_R_IPR_38_species for all unique analysis to insure a broarder comparison 
+# and higher likelihood that the genes are unique
+
+CREATE TABLE P17_IPRunique_38fungal
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", tc.ipr_id as "InterPro ID", ipr_desc as "InterPro description"#, GROUP_CONCAT(DISTINCT concat(LEFT(genus, 1),'. ',real_name) ORDER BY org_name SEPARATOR ", " ) "present in species"
+FROM (
+SELECT * FROM P17_R_IPR_38_species
+WHERE org_count = 1) tc
+LEFT JOIN ipr
+USING (ipr_id)
+LEFT JOIN organism 
+ON (name = org_name)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRunique_AspGenus
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", tc.ipr_id as "InterPro ID", ipr_desc as "InterPro description"#, GROUP_CONCAT(DISTINCT concat(LEFT(genus, 1),'. ',real_name) ORDER BY org_name SEPARATOR ", " ) "present in species"
+FROM (
+SELECT * FROM P17_R_IPR_38_species
+WHERE org_count = 1 AND org_name IN ("Aspacu1", "Aspbru1", "Aspell1", "Aspeuc1", "Asphet1", "Asphom1", "Asplac1", "Aspneo1", "Asppip1", "Aspsac1", "Aspscle1", "Aspscl1", "Aspuva1", "Aspvad1", "Aspvio1", "Aspfij1", "Aspibe1", "Aspjap1", "Aspcos1", "Aspfo1", "Aspac1", "Aspbr1", "Aspca3", "Aspfl1", "Aspfu1", "Aspnid1", "Aspni7", "Aspni_DSM_1", "Aspni_NRRL3_1", "Aspni_bvT_1", "Aspor1", "Aspph1", "Asptu1", "Aspka1_1", "Aspwel1", "Aspind1")) tc
+LEFT JOIN ipr
+USING (ipr_id)
+LEFT JOIN organism 
+ON (name = org_name)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRunique_NigriSection
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", tc.ipr_id as "InterPro ID", ipr_desc as "InterPro description"#, GROUP_CONCAT(DISTINCT concat(LEFT(genus, 1),'. ',real_name) ORDER BY org_name SEPARATOR ", " ) "present in species"
+FROM (
+SELECT * FROM P17_R_IPR_38_species
+WHERE org_count = 1 AND org_name IN ("Aspacu1", "Aspbru1", "Aspell1", "Aspeuc1", "Asphet1", "Asphom1", "Asplac1", "Aspneo1", "Asppip1", "Aspsac1", "Aspscle1", "Aspscl1", "Aspuva1", "Aspvad1", "Aspvio1", "Aspfij1", "Aspibe1", "Aspjap1", "Aspcos1", "Aspfo1", "Aspac1", "Aspbr1", "Aspca3", "Aspni7", "Aspni_DSM_1", "Aspni_NRRL3_1", "Aspni_bvT_1", "Aspph1", "Asptu1", "Aspka1_1", "Aspwel1", "Aspind1")) tc
+LEFT JOIN ipr
+USING (ipr_id)
+LEFT JOIN organism 
+ON (name = org_name)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRunique_TubigensisClade_orgName
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", tc.ipr_id as "InterPro ID", ipr_desc as "InterPro description", GROUP_CONCAT(DISTINCT concat(LEFT(genus, 1),'. ',real_name) ORDER BY org_name SEPARATOR ", " ) "present in species"
+FROM (
+SELECT * FROM P17_R_IPR_38_species
+WHERE org_count = 1 AND org_name IN ("Aspneo1", "Asptu1", "Aspcos1", "Aspeuc1", "Aspfo1", "Aspka1_1", "Asppip1", "Aspvad1")) tc
+LEFT JOIN ipr
+USING (ipr_id)
+LEFT JOIN organism 
+ON (name = org_name)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+CREATE TABLE P17_IPRunique_NigerClade_orgName
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", tc.ipr_id as "InterPro ID", ipr_desc as "InterPro description", GROUP_CONCAT(DISTINCT concat(LEFT(genus, 1),'. ',real_name) ORDER BY org_name SEPARATOR ", " ) "present in species"
+FROM (
+SELECT * FROM P17_R_IPR_38_species
+WHERE org_count = 1 AND org_name IN ("Asplac1", "Aspni7", "Aspni_DSM_1", "Aspni_NRRL3_1", "Aspni_bvT_1", "Aspph1")) tc
+LEFT JOIN ipr
+USING (ipr_id)
+LEFT JOIN organism 
+ON (name = org_name)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name, protein_id) DESC;
+
+# Unique section Nigri "core" gene-functions (InterPro) found in all species except the Niger isolates
+CREATE TABLE P17_IPRunique_NigriNOniger_orgName
+SELECT COUNT(DISTINCT org_name) as "# of species", COUNT(DISTINCT hfam) as "# of families", COUNT(DISTINCT org_name, protein_id) as "# of proteins", tc.ipr_id as "InterPro ID", ipr_desc as "InterPro description", GROUP_CONCAT(DISTINCT org_name ORDER BY org_name)
+FROM (
+SELECT * FROM P17_R_IPR_38_species
+WHERE org_count = 1 AND org_name IN ("Aspacu1", "Aspbru1", "Aspell1", "Aspeuc1", "Asphet1", "Asphom1", "Aspneo1", "Asppip1", "Aspsac1", "Aspscle1", "Aspscl1", "Aspuva1", "Aspvad1", "Aspvio1", "Aspfij1", "Aspibe1", "Aspjap1", "Aspcos1", "Aspfo1", "Aspac1", "Aspbr1", "Aspca3", "Asptu1", "Aspka1_1", "Aspwel1", "Aspind1")) tc
+LEFT JOIN ipr
+USING (ipr_id)
+GROUP BY ipr_id
+ORDER BY COUNT(DISTINCT org_name) DESC, COUNT(DISTINCT org_name, protein_id) DESC;
+
+# Core section Nigri gene-functions (InterPro) not found in the Aspergillus core genome
+CREATE TABLE P17_IPRcore_NigriSection_NoAspCore
+SELECT tb.* FROM P17_IPRcore_NigriSection tb
+LEFT JOIN P17_IPRcore_AspGenus ta
+USING (`InterPro ID`)
+WHERE ta.`InterPro description` IS NULL;
+
+
+# ----------------------------------------------- #
+# Tables to keep in the MySQL database
+# ----------------------------------------------- #
+
+# Rename tables
+RENAME TABLE `P17_Nigri_biblast_ID50_SC130` TO `pNigri_biblast_ID50_SC130`;
+RENAME TABLE `P17_Nigri_hfam` TO `pNigri_hfam`;
+RENAME TABLE `P17_Nigri_hfam_IPR` TO `pNigri_hfam_IPR`;
+
+
